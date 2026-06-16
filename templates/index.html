@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Deteksi Helm - YOLOv8</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #2563eb;
+        --success: #10b981;
+        --danger: #ef4444;
+        --dark: #0f172a;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: var(--bg);
+        color: var(--dark);
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Header */
+      header {
+        background-color: var(--card-bg);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 15px 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--primary);
+      }
+
+      /* Indikator LIVE */
+      .live-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-color: #fee2e2;
+        color: var(--danger);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .live-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--danger);
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+        }
+      }
+
+      /* Container Layout Grid */
+      .dashboard-container {
+        max-width: 1300px;
+        margin: 30px auto;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 25px;
+      }
+
+      @media (max-width: 992px) {
+        .dashboard-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Kartu Video & Kontrol */
+      .video-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      }
+
+      .video-wrapper {
+        background-color: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        aspect-ratio: 16/9;
+      }
+
+      .video-stream {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* Fitur Baru: Panel Kontrol */
+      .control-panel {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out; /* Animasi transisi mulus */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Efek ketika tombol DITEKAN */
+      .btn:active {
+        transform: translateY(2px) scale(0.98);
+      }
+
+      /* Efek ketika tombol SEDANG AKTIF (Dipilih) */
+      .btn.active-state {
+        box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.3);
+        filter: brightness(0.85);
+        border: 2px solid rgba(0, 0, 0, 0.2);
+      }
+
+      /* Gaya untuk tombol ikon kamera di log pelanggaran */
+      .snapshot-link {
+        text-decoration: none;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 3px 6px;
+        border-radius: 6px;
+        margin-left: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .snapshot-link:hover {
+        background: #e2e8f0;
+        transform: scale(1.1);
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+      }
+      .btn-danger {
+        background-color: #ef4444;
+        color: white;
+      }
+      .btn-secondary {
+        background-color: #e2e8f0;
+        color: #475569;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+
+      /* Kanan: Statistik & Log */
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+      }
+
+      /* Fitur Baru: Statistik Ringkasan */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .stat-box {
+        background-color: var(--card-bg);
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border-bottom: 4px solid var(--primary);
+      }
+      .stat-box.success {
+        border-bottom-color: var(--success);
+      }
+      .stat-box.danger {
+        border-bottom-color: var(--danger);
+      }
+
+      .stat-box span {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+      .stat-box h3 {
+        margin: 5px 0 0 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      /* Fitur Baru: Log Pelanggaran */
+      .log-card {
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .log-card h2 {
+        margin: 0 0 15px 0;
+        font-size: 16px;
+        font-weight: 600;
+        border-left: 4px solid var(--danger);
+        padding-left: 10px;
+      }
+
+      .log-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .log-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 13px;
+      }
+
+      .log-time {
+        color: #94a3b8;
+        font-family: monospace;
+      }
+      .status-badge {
+        background-color: #fee2e2;
+        color: var(--danger);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Deteksi Helm</h1>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        MONITORING AKTIF
+      </div>
+    </header>
+
+    <div class="dashboard-container">
+      <div class="video-card">
+        <div class="video-wrapper">
+          <video
+            id="client-video"
+            autoplay
+            playsinline
+            style="display: none"
+          ></video>
+          <canvas id="client-canvas" style="display: none"></canvas>
+
+          <img
+            id="video-stream"
+            src=""
+            alt="Menunggu izin akses kamera..."
+            class="video-stream"
+          />
+        </div>
+
+        <div
+          class="camera-selection"
+          style="
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          "
+        >
+          <label for="camera-select" style="font-size: 14px; font-weight: 500"
+            >Pilih Kamera:</label
+          >
+          <select
+            id="camera-select"
+            style="
+              padding: 8px;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              flex-grow: 1;
+              font-family: 'Poppins', sans-serif;
+            "
+          >
+            <option value="">Memindai kamera...</option>
+          </select>
+          <button class="btn btn-primary" onclick="changeCamera()">
+            🔄 Ganti Kamera
+          </button>
+        </div>
+
+        <div class="control-panel">
+          <button
+            id="btn-pause"
+            class="btn btn-secondary"
+            onclick="pauseVideo()"
+          >
+            ⏸ Jeda
+          </button>
+          <button
+            id="btn-resume"
+            class="btn btn-primary"
+            onclick="resumeVideo()"
+          >
+            ▶ Mulai
+          </button>
+          <button class="btn btn-danger" onclick="captureSnapshot()">
+            📷 Tangkap Layar Manual
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span>Total</span>
+            <h3 id="count-total">24</h3>
+          </div>
+          <div class="stat-box success">
+            <span>Helm</span>
+            <h3 id="count-helmet" style="color: var(--success)">18</h3>
+          </div>
+          <div class="stat-box danger">
+            <span>Pelanggar</span>
+            <h3 id="count-no-helmet" style="color: var(--danger)">6</h3>
+          </div>
+        </div>
+
+        <div class="log-card">
+          <h2>Log Pelanggaran Terbaru</h2>
+          <ul class="log-list" id="log-container">
+            <li class="log-item">
+              <span class="log-time">17:02:15</span>
+              <span class="status-badge">Tanpa Helm</span>
+            </li>
+            <li class="log-item">
+              <span class="log-time">17:00:42</span>
+              <span class="status-badge">Tanpa Helm</span>
+            </li>
+            <li class="log-item">
+              <span class="log-time">16:55:10</span>
+              <span class="status-badge">Tanpa Helm</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      &copy; 2026 Sistem Deteksi Helm Berbasis Web - Flask & YOLOv8
+    </footer>
+
+    <script>
+      const video = document.getElementById("client-video");
+      const canvas = document.getElementById("client-canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const imgStream = document.getElementById("video-stream");
+      const selectElement = document.getElementById("camera-select");
+
+      let currentStream = null;
+      let isProcessing = false;
+      let isPausedFrontend = false;
+
+      // 1. Memulai Kamera dari Browser (HP/Laptop)
+      async function startCamera(deviceId = null) {
+        if (currentStream) {
+          currentStream.getTracks().forEach((track) => track.stop());
+        }
+
+        // Default ke kamera belakang (environment) jika di HP
+        const constraints = {
+          video: deviceId
+            ? { deviceId: { exact: deviceId } }
+            : { facingMode: "environment" },
+        };
+
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia(
+            constraints
+          );
+          video.srcObject = currentStream;
+
+          video.onloadedmetadata = () => {
+            video.play();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            sendFrame(); // Mulai loop pengiriman frame ke backend
+          };
+
+          // Update daftar kamera setelah izin diberikan agar nama perangkat terbaca
+          updateCameraList();
+        } catch (err) {
+          console.error("Error mengakses kamera:", err);
+          imgStream.alt = "Izin kamera ditolak atau kamera tidak ditemukan.";
+        }
+      }
+
+      // 2. Mengirim Frame ke Backend secara terus menerus
+      async function sendFrame() {
+        if (isPausedFrontend) {
+          setTimeout(sendFrame, 100);
+          return;
+        }
+
+        // Pastikan video berjalan dan proses sebelumnya sudah selesai
+        if (!isProcessing && video.readyState === video.HAVE_ENOUGH_DATA) {
+          isProcessing = true;
+
+          // Gambar frame ke canvas
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // Kompres menjadi Base64 JPEG (kualitas 0.6 untuk keseimbangan kecepatan & kualitas)
+          const dataURL = canvas.toDataURL("image/jpeg", 0.6);
+
+          try {
+            const response = await fetch("/process_frame", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ image: dataURL }),
+            });
+            const data = await response.json();
+
+            // Render gambar ber-annotasi dari server ke elemen <img>
+            if (data.image) {
+              imgStream.src = data.image;
+            }
+          } catch (err) {
+            console.error("Gagal memproses frame:", err);
+          }
+          isProcessing = false;
+        }
+
+        // Panggil ulang secepat mungkin (akan distabilkan oleh isProcessing agar tidak over-request)
+        requestAnimationFrame(sendFrame);
+      }
+
+      // 3. Mengambil & Mengupdate Daftar Kamera
+      function updateCameraList() {
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => {
+            const videoInputs = devices.filter(
+              (device) => device.kind === "videoinput"
+            );
+
+            // Simpan value yang sedang dipilih
+            const currentValue = selectElement.value;
+            selectElement.innerHTML = "";
+
+            if (videoInputs.length === 0) {
+              selectElement.innerHTML = `<option value="">Tidak ada kamera terdeteksi</option>`;
+              return;
+            }
+
+            videoInputs.forEach((device, index) => {
+              const option = document.createElement("option");
+              option.value = device.deviceId;
+              option.text = device.label || `Kamera ${index + 1}`;
+              selectElement.appendChild(option);
+            });
+
+            if (
+              currentValue &&
+              [...selectElement.options].some(
+                (opt) => opt.value === currentValue
+              )
+            ) {
+              selectElement.value = currentValue;
+            }
+          })
+          .catch((err) => console.error("Error mendeteksi perangkat:", err));
+      }
+
+      // Event saat tombol "Ganti Kamera" ditekan
+      function changeCamera() {
+        const selectedDeviceId = selectElement.value;
+        if (selectedDeviceId) {
+          imgStream.style.opacity = "0.5";
+          startCamera(selectedDeviceId).then(() => {
+            imgStream.style.opacity = "1";
+          });
+        }
+      }
+
+      // 4. Kontrol Dashboard & Statistik
+      function pauseVideo() {
+        isPausedFrontend = true;
+        fetch("/toggle_camera/pause")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success")
+              console.log("Sistem Berhasil Dijeda");
+          });
+      }
+
+      function resumeVideo() {
+        isPausedFrontend = false;
+        fetch("/toggle_camera/resume")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success")
+              console.log("Sistem Berhasil Dimulai Kembali");
+          });
+      }
+
+      function captureSnapshot() {
+        fetch("/snapshot")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              alert("Snapshot Manual Berhasil! " + data.message);
+            } else {
+              alert("Error: " + data.message);
+            }
+          })
+          .catch((err) => console.error("Error:", err));
+      }
+
+      // Mengambil Data Statistik secara Real-Time (Tiap 1 Detik)
+      setInterval(function () {
+        fetch("/get_stats")
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("count-total").innerText = data.stats.total;
+            document.getElementById("count-helmet").innerText =
+              data.stats.helmet;
+            document.getElementById("count-no-helmet").innerText =
+              data.stats.no_helmet;
+
+            const liveBadge = document.querySelector(".live-badge");
+            if (data.is_paused || isPausedFrontend) {
+              liveBadge.style.backgroundColor = "#e2e8f0";
+              liveBadge.style.color = "#475569";
+              liveBadge.innerText = "MONITORING DIJEDA";
+            } else {
+              liveBadge.style.backgroundColor = "#fee2e2";
+              liveBadge.style.color = "#ef4444";
+              liveBadge.innerHTML =
+                '<div class="live-dot"></div> MONITORING AKTIF';
+            }
+
+            const logContainer = document.getElementById("log-container");
+            logContainer.innerHTML = "";
+            data.logs.forEach((log) => {
+              const li = document.createElement("li");
+              li.className = "log-item";
+              li.innerHTML = `
+          <span class="log-time">${log.time}</span>
+          <span class="status-badge">${log.status}</span>
+        `;
+              logContainer.appendChild(li);
+            });
+          })
+          .catch((err) => console.error("Error fetching stats:", err));
+      }, 1000);
+
+      // Jalankan kamera saat pertama web dimuat
+      document.addEventListener("DOMContentLoaded", () => {
+        startCamera();
+      });
+    </script>
+  </body>
+</html>
